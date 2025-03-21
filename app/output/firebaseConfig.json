@@ -1,0 +1,14 @@
+{
+  "type": "service_account",
+  "project_id": "coope-borbon-27d4e",
+  "private_key_id": "29bb5faece70f46dd5b42a4429e0919ca2fff80f",
+  "private_key": "lJb/K2/3bUDMYdgmw3iiqKrWEt2jMZsLU4e4bEhpkwOW9Z/gCLSc0fRkh\n5oFv7JS+vZ92fXRogg10JAOIH+vlvqx681ZgFKzKBsbzYGs8PXWR6qBiTnZmOrPY\ngBCi6dQZVL8nlrKp3Aj7PoSguLXNJdYt1URcqtP2CJ/AQOrOSDDkTJmkDFPZcENP\nvtnJb6udyaEyGaCjgvcVRWGJDmObHEPqFC7xzSgIuSS5Pd+xWu7JDSfgB81gH7Hg\nU0Q0OjDxWX/vP+H6ytt3GSp6B3t4skAC4Q/0VO+GWbgumQAN22hj1507byR+D/mz\nVQzWMGfVAgMBAAECggEABItcgk8X28p21JOyhbZs2ZrHJsXbT6gzq+VQG3JF6rKE\nwt66XpiTZWLzl7ojlCGfO0isWUYBGOS8c9zcuBRGgJaqkIn8SF/Mh7VFjTZtCqRn\nfH1Wrv+hWY4KgSSVzErzymCPcMY5cbGowXBFCRtMkzqGksgEu4tslwNagoVYz1LO\n0NEq3xfFBa8EmjDWIRphNIiilUlyYUKKghripki0Lpwusxh8WiHwzps0smJ6/MMu\n1wIX+7S+Wl9liySzvjgSLSOL19DqbrG9cl5wYcgXh3jwZz4r3JkiTp2xxRrfY3pf\nQyxv+cQBby8GOoZUz+cbb9XKdMm1QO54kbAGBvf3EQKBgQDJoOxj448B6Gb4rkeJ\nn1VJS1u6c4cgMXnYKfe50SIRqg6NyU/S80aJPIMJs+xNWvOTRtRGOetqDNhGJ6Bk\nhDK3Unxsa7a+3AxO4IE4SzRg3raReUJYsaZvb845vIDK/eUqW0h8HHs6yE7AR0Vd\ner+CBnGerMEKCOe+zuQTvl6iLQKBgQC3JMxZMZMItp+YnKz/+8o14eQZUBWNyGhq\n/jnlCrJMCSK6uQX7VsEOHxWG4zVuwtJ67UEmZx/dnImBOZb5MjbPi/m3R9Wh0EU2\neUgm7/HMtGiltNfxN4+ozTqATqZhumAIAp3HaOhMrgQlv6e7cU6kxPmw6wgQiJuj\njnsNLiNtSQKBgAupymLQ1AHpPqOd+TdlxxoxSMIVUrizA/hUHSdbiJv6+VKMVZi/\nR9JCdNYH2WB0JWjcjQTu7sY4rf4I5sdJumFOXTIsXOrXccLSS8dE2mfMGkV5/TOC\nOz1w+z3twIl9fFch5qR/RUWWNq/6r3GD2zYbR1FFbvk0oKsx7pGRzomVAoGAIT2d\nlWbJECDNcM6nG8MgnY0FcI63isdgJGNGMMszN1fFJOzmKAtD+QMtThE5JoRX3ZXo\naEb5YqjB0GGahFpX1m3KgjiYjskVduCmduLAGW55O/JJ628xNOsi/hzIWB6SxYFs\nD8B7wUcoW42grQXQx1k1FKZkDVQuI459yROhvHkCgYEArpy2f3Uk2aFPGekS4lsc\njf15AKTdscE35fkFLujlXav5Sh83EuMQKwOAR/fyWtmupzVH9mlwQj/ybghSGlq/\nTZa7lLFY9PH8I+R9vPn00dN+OUpRuoaa1TxW6+Srp0A2VevZvW8TfJhCBsjwB8Ky\n7woU3uGILypIVVXZu5XvwvQ=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@coope-borbon-27d4e.iam.gserviceaccount.com",
+  "client_id": "",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40coope-borbon-27d4e.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
+

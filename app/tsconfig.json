@@ -1,0 +1,7 @@
+{
+  "include": ["src"],
+  "exclude": ["src/electron"],
+  "references": [
+    { "path": "./tsconfig.node.json" }
+  ]
+}
