@@ -1,19 +1,14 @@
 
 import { initializeApp } from 'firebase/app';
 import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { getFirestore, addDoc, setDoc, doc, collection, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
-import { Tag, Business, Product } from 'dbtypes';
-
+import { Tag, Business, Product } from 'dbtypes'
 import { Especias, Frutas, Hierbas, Infusiones, Tuberculos, Vegetales, Hongos } from './tag';
 import { ElChamoDelEncantoHermanosSolano, TramoNato, TramoDelAngel, ChamoGuzman, ElJardinDeHugo } from './business';
 import { ElchamodelencantoHermanosSolanoTomate, ElchamodelencantoHermanosSolanoCebollas, ElchamodelencantoHermanosSolanoFresa, ElchamodelencantoHermanosSolanoTomateCherry, ElchamodelencantoHermanosSolanoPapa, ElchamodelencantoHermanosSolanoLimonMesino, ElchamodelencantoHermanosSolanoArracacheEnPelota, ElchamodelencantoHermanosSolanoArracachePicado, ElchamodelencantoHermanosSolanoBrocoli, ElchamodelencantoHermanosSolanoColiflor, TramoNatoPapa, TramoNatoChileDulce, TramoNatoBrocoli, TramoNatoColiflor, TramoNatoChayote, TramoNatoTomate, TramoNatoPepino, TramoNatoZanahoria, TramoNatoAyoteTierno, TramoNatoPina, TramoNatoCebollas, TramoNatoYuca, TramoNatoElote, TramoNatoRepollo, TramoNatoAjo, TramoNatoTamarindo, TramoNatoCamote, TramoNatoTiquisque, TramoNatoAyote, TramodelAngelTomate, TramodelAngelCas, TramodelAngelMora, TramodelAngelHongoBlanco, TramodelAngelAguacate, TramodelAngelPapa, TramodelAngelTomateDeArbol, TramodelAngelCarambola, TramodelAngelNaranjilla, TramodelAngelTomateCherry, TramodelAngelChileDulce, TramodelAngelChilePicante, TramodelAngelChilePanameno, TramodelAngelHabanoChocolate, TramodelAngelCebolla, TramodelAngelAjoPelado, TramodelAngelVainica, ChamoGuzmanRemolacha, ChamoGuzmanTomate, ChamoGuzmanRepolloMorado, ChamoGuzmanChileDulce, ChamoGuzmanZuquini, ChamoGuzmanChayoteNegro, ChamoGuzmanPipas, ChamoGuzmanPlatanoVerde, ChamoGuzmanPlatanoMaduro, ChamoGuzmanLechuga, ChamoGuzmanMaracuya, ChamoGuzmanAyoteSazon, ChamoGuzmanCamote, ChamoGuzmanMalanga, ChamoGuzmanPapaya, ChamoGuzmanLimonMandarina, ChamoGuzmanPina, ChamoGuzmanElote, ChamoGuzmanColiflor, ChamoGuzmanCoco, ChamoGuzmanZanahoria, ChamoGuzmanAyoteTierno, ChamoGuzmanChayoteCocoro, ChamoGuzmanCebolla, ChamoGuzmanRepollo, EljardindeHugoCebollin, EljardindeHugoHierbabuena, EljardindeHugoRabano, EljardindeHugoKelite, EljardindeHugoEspinaca, EljardindeHugoTamarindo, EljardindeHugoSabila, EljardindeHugoZanahoria, EljardindeHugoCebolla, EljardindeHugoVinagreGuineo, EljardindeHugoJamaica, EljardindeHugoHojasDeLaurel, EljardindeHugoCanela, EljardindeHugoPaprika, EljardindeHugoAjoEnPolvo, EljardindeHugoPimientaNegra, EljardindeHugoBomba, EljardindeHugoAginomoto, EljardindeHugoCurcuma, EljardindeHugoJengibreEnPolvo, EljardindeHugoOreganoSeco, EljardindeHugoAchoteEnPasta, EljardindeHugoLechuga, EljardindeHugoCoyote, EljardindeHugoRepollo } from './product';
-
-const loadFirebaseConfig = (): any => {
-  const configPath = './firebaseConfig.json';
-  const configData = fs.readFileSync(configPath, 'utf8');
-  return JSON.parse(configData);
-};
 
 const storeBusiness = async (db: Firestore, auth: Auth, biz: Business): Promise<Business> => {
   const newBusiness = biz;
@@ -32,15 +27,7 @@ const storeProducts = async (db: Firestore, products: Product[], business: Busin
 
 
 export default async function run() {
-  const firebaseConfig = {
-    apiKey: "AIzaSyAUSHyN10whF0KBMwR_nOpc_RHWQq1G5Zg",
-    authDomain: "coope-borbon-27d4e.firebaseapp.com",
-    projectId: "coope-borbon-27d4e",
-    storageBucket: "coope-borbon-27d4e.firebasestorage.app",
-    messagingSenderId: "544708923892",
-    appId: "1:544708923892:web:cc2ed329410e026372e9a1",
-    measurementId: "G-KELZCCR1C9"
-  };
+  const firebaseConfig = require(path.join(__dirname, 'firebaseConfig'));
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);

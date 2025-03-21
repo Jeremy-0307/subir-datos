@@ -17,9 +17,12 @@ export async function mainCreator() {
     let fileStr = `
 import { initializeApp } from 'firebase/app';
 import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { getFirestore, addDoc, setDoc, doc, collection, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
-import { Tag, Business, Product } from 'dbtypes';\n\n`;
+import { Tag, Business, Product } from 'dbtypes'
+`;
     let extracted = {};
     sheets.forEach(sheet => {
         const filePath = path.join(outputDir, `${sheet}.ts`);
@@ -41,12 +44,6 @@ import { Tag, Business, Product } from 'dbtypes';\n\n`;
         }
     });
     fileStr += `
-const loadFirebaseConfig = (): any => {
-  const configPath = './firebaseConfig.json';
-  const configData = fs.readFileSync(configPath, 'utf8');
-  return JSON.parse(configData);
-};\n`;
-    fileStr += `
 const storeBusiness = async (db: Firestore, auth: Auth, biz: Business): Promise<Business> => {
   const newBusiness = biz;
   const businessCollection = collection(db, "businesses");
@@ -62,15 +59,7 @@ const storeProducts = async (db: Firestore, products: Product[], business: Busin
 };\n\n`;
     fileStr += `
 export default async function run() {
-  const firebaseConfig = {
-    apiKey: "AIzaSyAUSHyN10whF0KBMwR_nOpc_RHWQq1G5Zg",
-    authDomain: "coope-borbon-27d4e.firebaseapp.com",
-    projectId: "coope-borbon-27d4e",
-    storageBucket: "coope-borbon-27d4e.firebasestorage.app",
-    messagingSenderId: "544708923892",
-    appId: "1:544708923892:web:cc2ed329410e026372e9a1",
-    measurementId: "G-KELZCCR1C9"
-  };
+  const firebaseConfig = require(path.join(__dirname, 'firebaseConfig'));
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);\n\n`;
@@ -110,7 +99,7 @@ module.exports.run = run;\n`;
             bundle: true,
             platform: 'node',
             format: 'cjs',
-            target: 'node16',
+            target: 'es2020',
             external: ['@grpc/grpc-js'],
         });
         (async () => {
@@ -122,7 +111,7 @@ module.exports.run = run;\n`;
                         ? importedModule.default
                         : null;
                 if (runFunction) {
-                    runFunction();
+                    await runFunction();
                 }
                 else {
                     console.error("Error during execution: No valid function export found.");
@@ -146,12 +135,10 @@ export function excelToTS(filePath) {
     if (!fs.existsSync(filePath)) {
         return { success: false, message: "El archivo enviado no existe" };
     }
-    // abrir/crear carpeta de codigo .ts generado
     const outputDir = path.join(process.cwd(), 'output');
     if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
     }
-    // abrir el excel
     const workbook = XLSX.readFile(filePath);
     let insertedData = {};
     for (const sheetName of sheets) {
@@ -223,7 +210,6 @@ export function excelToTS(filePath) {
                                 ? {}
                                 : ""
                         : processedValue;
-                //console.log(`before ${processedValue} => after ${formatValue(processedValue)}`)
                 exportStr += `  ${key}: ${formatValue(processedValue)},\n`;
                 rowData[key] = processedValue;
             }
@@ -315,20 +301,20 @@ function ColumnHandler(key, value) {
                 return parsedDate;
             case 'list':
             case 'array':
-                // Split the value into an array based on newlines or single element
+                if (!value) {
+                    return [];
+                }
                 let arr = value.includes('\n')
-                    ? value.split('\n').map(item => Normalize(item.trim()))
+                    ? value.split('\n').map((item) => Normalize(item.trim()))
                     : [Normalize(value.trim())];
-                // If the value contains braces, process replacements
                 if (value.includes('{')) {
-                    arr = arr.map(a => {
+                    arr = arr.map((a) => {
                         try {
-                            // Use eval to convert pseudo-JSON string to object
                             return eval('(' + a + ')');
                         }
                         catch (error) {
                             console.error('Failed to parse array element:', a, error);
-                            return a; // fallback to the original string if parsing fails
+                            return a;
                         }
                     });
                 }
@@ -349,9 +335,8 @@ function formatValue(value) {
         return String(value);
     }
     else if (value instanceof Date) {
-        // Check if date is valid before calling toISOString()
         if (isNaN(value.getTime())) {
-            return `new Date()`; // Return current date if invalid
+            return `new Date()`;
         }
         return `new Date('${value.toISOString()}')`;
     }
@@ -360,7 +345,7 @@ function formatValue(value) {
         return `[${value
             .map(item => {
             if (typeof item === 'string' && validIdentifier.test(item)) {
-                return item; // Sin comillas
+                return item;
             }
             else {
                 return formatValue(item);

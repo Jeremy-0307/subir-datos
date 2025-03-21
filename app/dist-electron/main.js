@@ -15,24 +15,27 @@ function createMainWindow() {
     else {
         mainWindow.loadFile(path.join(app.getAppPath(), '/dist-react/index.html'));
     }
+    mainWindow.on('close', (event) => {
+        event.preventDefault();
+        app.quit();
+        process.exit(0);
+    });
     return mainWindow;
 }
 app.whenReady().then(() => {
     createMainWindow();
-    // En macOS se recrea la ventana cuando se activa la app
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createMainWindow();
         }
     });
 });
-// Cerrar la aplicación en plataformas que no sean macOS
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
+        process.exit(0);
     }
 });
-// Manejo de la llamada para abrir un archivo Excel
 ipcMain.handle('open-excel', async () => {
     let output;
     try {
@@ -46,7 +49,7 @@ ipcMain.handle('open-excel', async () => {
         const filePath = filePaths[0];
         output = await excelToTS(filePath);
         console.log(output?.message);
-        return { success: true, message: output?.message };
+        return { success: output.success, message: output?.message };
     }
     catch (error) {
         console.error('Error processing Excel file:', error);
@@ -62,7 +65,7 @@ ipcMain.handle('upload-excel', async () => {
         output = await mainCreator();
         console.log(output?.message);
         return {
-            success: true,
+            success: output.success,
             message: output?.message
         };
     }

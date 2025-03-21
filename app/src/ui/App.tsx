@@ -1,34 +1,52 @@
 import { useState } from 'react';
 import './App.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
-  const [excelData, setExcelData] = useState<boolean | null>(null);
-  const [correctParsing, setCorrectParsing] = useState<boolean | null>(null);
+  const [text, setText] = useState("");
+  const [isParsingCorrect, setIsParsingCorrect] = useState<boolean>(false);
+
+  const sleep = (seconds: number) => new Promise(resolve => setTimeout(resolve, seconds * 1000));
 
   const handleOpenExcel = async () => {
     const data = await window.electron.openExcel();
-    setCorrectParsing(data.success === true);
+    setIsParsingCorrect(data.success);
+
+    if (data.success) {
+      toast.success(data.message, { autoClose: 4000 });
+    } else {
+      toast.error(data.message, { autoClose: 4000 });
+    }
+    setText(data.message);
   };
 
   const handleUpload = async () => {
     const data = await window.electron.uploadExcel();
-    console.log(data.message)
-    setExcelData(data.success === true);
+    if (data.success) {
+      toast.success(data.message, { autoClose: 4000 });
+    } else {
+      toast.error(data.message, { autoClose: 4000 });
+    }
+    setIsParsingCorrect(false);
   };
 
   return (
     <div className="App">
-      <h1>Upload and Display Excel Data</h1>
-      
-      {excelData === true && correctParsing === true && (
-        <h3>Datos subidos correctamente</h3>
-      )}
-
-      <button onClick={handleOpenExcel}>Select Excel File</button>
-
-      {correctParsing === true && (
-        <button onClick={handleUpload}>Subir Datos</button>
-      )}
+      <div className="container">
+        <h1 className="title">Cargar Datos Firebase</h1>
+        <div className="button-group">
+          <button className="btn select-btn" onClick={handleOpenExcel}>
+            Seleccoinar archivo Excel
+          </button>
+          {isParsingCorrect && (
+            <button className="btn upload-btn" onClick={handleUpload}>
+              Subir Datos
+            </button>
+          )}
+        </div>
+      </div>
+      <ToastContainer position="top-right" />
     </div>
   );
 }
