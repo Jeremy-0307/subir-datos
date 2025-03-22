@@ -68,9 +68,9 @@ Vegetales
 cada contacto diferente debe ir en una linea diferente y sin dejar espacios<br>
 Formato:
 ```
-{contactType: /<tipo de contacto/>, contactUrl: \<link\>}
+{contactType: <tipo de contacto>, contactUrl: <link>}
 ```
-/<tipo de contacto/> solo puede tener uno de los siguientes valores (incluyendo '')
+\<tipo de contacto\> solo puede tener uno de los siguientes valores (incluyendo '')
 	- 'Facebook'
 	- 'Instagram'
 	- 'Website'
