@@ -2,7 +2,6 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 import { buildSync } from 'esbuild/lib/main.js';
-// @ts-ignore
 import XLSX from 'xlsx/xlsx.js';
 import os from 'os';
 import { execSync } from 'child_process';

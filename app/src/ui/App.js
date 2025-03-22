@@ -38,10 +38,13 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var react_1 = require("react");
 require("./App.css");
+var react_toastify_1 = require("react-toastify");
+require("react-toastify/dist/ReactToastify.css");
 function App() {
     var _this = this;
-    var _a = (0, react_1.useState)(null), excelData = _a[0], setExcelData = _a[1];
-    var _b = (0, react_1.useState)(null), correctParsing = _b[0], setCorrectParsing = _b[1];
+    var _a = (0, react_1.useState)(""), text = _a[0], setText = _a[1];
+    var _b = (0, react_1.useState)(false), isParsingCorrect = _b[0], setIsParsingCorrect = _b[1];
+    var sleep = function (seconds) { return new Promise(function (resolve) { return setTimeout(resolve, seconds * 1000); }); };
     var handleOpenExcel = function () { return __awaiter(_this, void 0, void 0, function () {
         var data;
         return __generator(this, function (_a) {
@@ -49,7 +52,14 @@ function App() {
                 case 0: return [4 /*yield*/, window.electron.openExcel()];
                 case 1:
                     data = _a.sent();
-                    setCorrectParsing(data.success === true);
+                    setIsParsingCorrect(data.success);
+                    if (data.success) {
+                        react_toastify_1.toast.success(data.message, { autoClose: 4000 });
+                    }
+                    else {
+                        react_toastify_1.toast.error(data.message, { autoClose: 4000 });
+                    }
+                    setText(data.message);
                     return [2 /*return*/];
             }
         });
@@ -61,20 +71,30 @@ function App() {
                 case 0: return [4 /*yield*/, window.electron.uploadExcel()];
                 case 1:
                     data = _a.sent();
-                    console.log(data.message);
-                    setExcelData(data.success === true);
+                    if (data.success) {
+                        react_toastify_1.toast.success(data.message, { autoClose: 4000 });
+                    }
+                    else {
+                        react_toastify_1.toast.error(data.message, { autoClose: 4000 });
+                    }
+                    setIsParsingCorrect(false);
                     return [2 /*return*/];
             }
         });
     }); };
     return (<div className="App">
-      <h1>Upload and Display Excel Data</h1>
-      
-      {excelData === true && correctParsing === true && (<h3>Datos subidos correctamente</h3>)}
-
-      <button onClick={handleOpenExcel}>Select Excel File</button>
-
-      {correctParsing === true && (<button onClick={handleUpload}>Subir Datos</button>)}
+      <div className="container">
+        <h1 className="title">Cargar Datos Firebase</h1>
+        <div className="button-group">
+          <button className="btn select-btn" onClick={handleOpenExcel}>
+            Seleccoinar archivo Excel
+          </button>
+          {isParsingCorrect && (<button className="btn upload-btn" onClick={handleUpload}>
+              Subir Datos
+            </button>)}
+        </div>
+      </div>
+      <react_toastify_1.ToastContainer position="top-right"/>
     </div>);
 }
 exports.default = App;

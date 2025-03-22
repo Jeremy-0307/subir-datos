@@ -2,6 +2,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 import { buildSync } from 'esbuild/lib/main.js';
+// @ts-ignore
 import XLSX from 'xlsx/xlsx.js';
 import os from 'os';
 import { execSync } from 'child_process';
@@ -189,6 +190,7 @@ export function excelToTS(filePath: string) {
     let processedRows: any[] = [];
     let fila = 0;
     let rowData: any = {};
+    // @ts-ignore
     const firstRowRange = XLSX.utils.decode_range(sheet['!ref']);
     const allColumns: string[] = [];
     for (let col = firstRowRange.s.c; col <= firstRowRange.e.c; col++) {
