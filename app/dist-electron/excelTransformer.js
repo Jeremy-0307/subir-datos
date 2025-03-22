@@ -45,17 +45,32 @@ import { Tag, Business, Product } from 'dbtypes'
         }
     });
     fileStr += `
+const Normalize = (input: string): string => {
+  let normalized = input.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+  normalized = normalized.replace(/[àáâãäå]/g, 'a')
+                         .replace(/[èéêë]/g, 'e')
+                         .replace(/[ìíîï]/g, 'i')
+                         .replace(/[òóôõö]/g, 'o')
+                         .replace(/[ùúûü]/g, 'u')
+                         .replace(/ñ/g, 'n')
+                         .replace(/ç/g, 'c');
+  normalized = normalized.replace(/ /g, "");
+  return normalized;
+};\n\n`;
+    fileStr += `
 const storeBusiness = async (db: Firestore, auth: Auth, biz: Business): Promise<Business> => {
   const newBusiness = biz;
   const businessCollection = collection(db, "businesses");
-  await setDoc(doc(businessCollection, newBusiness.firebaseUserId), newBusiness);
+  console.log(\`before \${newBusiness.firebaseUserId}\`)
+  console.log(\`after \${Normalize(newBusiness.firebaseUserId)}\`)
+  await setDoc(doc(businessCollection, Normalize(newBusiness.firebaseUserId)), newBusiness);
   return newBusiness;
 };\n\n`;
     fileStr += `
 const storeProducts = async (db: Firestore, products: Product[], business: Business): Promise<void> => {
   for (let i = 0; i < products.length; i++) {
     const currentProd = products[i];
-    await addDoc(collection(db, "products"), currentProd);
+    await setDoc(doc(db, "products", Normalize(currentProd.businessId+"."+currentProd.name)), currentProd);
   }
 };\n\n`;
     fileStr += `
@@ -66,7 +81,7 @@ export default async function run() {
   const auth = getAuth(app);\n\n`;
     if (extracted['tag'] && extracted['tag'].length > 0) {
         extracted['tag'].forEach((tagName) => {
-            fileStr += `  await addDoc(collection(db, "tag"), ${tagName});\n`;
+            fileStr += `  await setDoc(doc(db, "tag", Normalize('${tagName}')), ${tagName});\n`;
         });
     }
     if (extracted['business'] && extracted['business'].length > 0) {

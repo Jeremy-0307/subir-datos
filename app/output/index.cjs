@@ -9707,7 +9707,7 @@ function isVersionServiceProvider(provider) {
   return (component === null || component === void 0 ? void 0 : component.type) === "VERSION";
 }
 var name$q = "@firebase/app";
-var version$1 = "0.11.2";
+var version$1 = "0.11.3";
 var logger = new Logger("@firebase/app");
 var name$p = "@firebase/app-compat";
 var name$o = "@firebase/analytics-compat";
@@ -9735,7 +9735,7 @@ var name$3 = "@firebase/firestore";
 var name$2 = "@firebase/vertexai";
 var name$1 = "@firebase/firestore-compat";
 var name = "firebase";
-var version = "11.4.0";
+var version = "11.5.0";
 var DEFAULT_ENTRY_NAME2 = "[DEFAULT]";
 var PLATFORM_LOG_STRING = {
   [name$q]: "fire-core",
@@ -10274,7 +10274,7 @@ registerCoreComponents("");
 
 // node_modules/firebase/app/dist/index.mjs
 var name2 = "firebase";
-var version2 = "11.4.0";
+var version2 = "11.5.0";
 registerVersion(name2, version2, "app");
 
 // output/index.ts
@@ -10695,7 +10695,7 @@ var Md5;
 var grpc = __toESM(require("@grpc/grpc-js"), 1);
 var protoLoader = __toESM(require_src2(), 1);
 var name3 = "@firebase/firestore";
-var version$12 = "4.7.9";
+var version$12 = "4.7.10";
 var User = class {
   constructor(uid) {
     this.uid = uid;
@@ -10722,7 +10722,7 @@ User.UNAUTHENTICATED = new User(null);
 User.GOOGLE_CREDENTIALS = new User("google-credentials-uid");
 User.FIRST_PARTY = new User("first-party-uid");
 User.MOCK_USER = new User("mock-user");
-var version3 = "11.4.0";
+var version3 = "11.5.0";
 var SDK_VERSION2 = version3;
 function setSDKVersion(version5) {
   SDK_VERSION2 = version5;
@@ -11188,6 +11188,9 @@ function makeAuthCredentialsProvider(credentials2) {
 function randomBytes(nBytes) {
   return (0, import_crypto.randomBytes)(nBytes);
 }
+function newTextEncoder() {
+  return new import_util4.TextEncoder();
+}
 var AutoId = class {
   static newId() {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -11213,6 +11216,46 @@ function primitiveComparator(left, right) {
     return 1;
   }
   return 0;
+}
+function compareUtf8Strings(left, right) {
+  let i = 0;
+  while (i < left.length && i < right.length) {
+    const leftCodePoint = left.codePointAt(i);
+    const rightCodePoint = right.codePointAt(i);
+    if (leftCodePoint !== rightCodePoint) {
+      if (leftCodePoint < 128 && rightCodePoint < 128) {
+        return primitiveComparator(leftCodePoint, rightCodePoint);
+      } else {
+        const encoder = newTextEncoder();
+        const leftBytes = encoder.encode(getUtf8SafeSubstring(left, i));
+        const rightBytes = encoder.encode(getUtf8SafeSubstring(right, i));
+        const comp = compareByteArrays$1(leftBytes, rightBytes);
+        if (comp !== 0) {
+          return comp;
+        } else {
+          return primitiveComparator(leftCodePoint, rightCodePoint);
+        }
+      }
+    }
+    i += leftCodePoint > 65535 ? 2 : 1;
+  }
+  return primitiveComparator(left.length, right.length);
+}
+function getUtf8SafeSubstring(str, index) {
+  const firstCodePoint = str.codePointAt(index);
+  if (firstCodePoint > 65535) {
+    return str.substring(index, index + 2);
+  } else {
+    return str.substring(index, index + 1);
+  }
+}
+function compareByteArrays$1(left, right) {
+  for (let i = 0; i < left.length && i < right.length; ++i) {
+    if (left[i] !== right[i]) {
+      return primitiveComparator(left[i], right[i]);
+    }
+  }
+  return primitiveComparator(left.length, right.length);
 }
 function arrayEquals(left, right, comparator) {
   if (left.length !== right.length) {
@@ -11466,7 +11509,7 @@ var BasePath = class _BasePath {
         return comparison;
       }
     }
-    return Math.sign(p1.length - p2.length);
+    return primitiveComparator(p1.length, p2.length);
   }
   static compareSegments(lhs, rhs) {
     const isLhsNumeric = _BasePath.isNumericId(lhs);
@@ -11478,13 +11521,7 @@ var BasePath = class _BasePath {
     } else if (isLhsNumeric && isRhsNumeric) {
       return _BasePath.extractNumericId(lhs).compare(_BasePath.extractNumericId(rhs));
     } else {
-      if (lhs < rhs) {
-        return -1;
-      }
-      if (lhs > rhs) {
-        return 1;
-      }
-      return 0;
+      return compareUtf8Strings(lhs, rhs);
     }
   }
   // Checks if a segment is a numeric ID (starts with "__id" and ends with "__").
@@ -12991,7 +13028,7 @@ function valueCompare(left, right) {
     case 4:
       return compareTimestamps(getLocalWriteTime(left), getLocalWriteTime(right));
     case 5:
-      return primitiveComparator(left.stringValue, right.stringValue);
+      return compareUtf8Strings(left.stringValue, right.stringValue);
     case 6:
       return compareBlobs(left.bytesValue, right.bytesValue);
     case 7:
@@ -13098,7 +13135,7 @@ function compareMaps(left, right) {
   leftKeys.sort();
   rightKeys.sort();
   for (let i = 0; i < leftKeys.length && i < rightKeys.length; ++i) {
-    const keyCompare = primitiveComparator(leftKeys[i], rightKeys[i]);
+    const keyCompare = compareUtf8Strings(leftKeys[i], rightKeys[i]);
     if (keyCompare !== 0) {
       return keyCompare;
     }
@@ -23200,15 +23237,6 @@ function setDoc(reference, data, options) {
   const mutation = parsed.toMutation(reference._key, Precondition.none());
   return executeWrite(firestore, [mutation]);
 }
-function addDoc(reference, data) {
-  const firestore = cast(reference.firestore, Firestore);
-  const docRef = doc(reference);
-  const convertedValue = applyFirestoreDataConverter(reference.converter, data);
-  const dataReader = newUserDataReader(reference.firestore);
-  const parsed = parseSetData(dataReader, "addDoc", docRef._key, convertedValue, reference.converter !== null, {});
-  const mutation = parsed.toMutation(docRef._key, Precondition.exists(false));
-  return executeWrite(firestore, [mutation]).then(() => docRef);
-}
 function executeWrite(firestore, mutations) {
   const client = ensureFirestoreConfigured(firestore);
   return firestoreClientWrite(client, mutations);
@@ -26822,17 +26850,17 @@ var ElChamoDelEncantoHermanosSolano = {
   canton: "Montes de Oca",
   cellPhone: "22225381/84381847",
   contacts: [],
-  created: 1742596967892,
+  created: 1742664170022,
   currentLocation: { "latitude": 9.94148, "longitude": -84.049331 },
-  description: "Los hermanos Gerardo y Julieta Solano contin\xFAan con su negocio familiar, El Chamo del encanto, fundado a principio del a\xF1o 62 por ellos y dos hermanos m\xE1s. Actualmente, son productores y vendedores de toda clase de c\xEDtricos, legumbres y verduras. Los hermanos Solano te ofrecen la frescura de productos tra\xEDdos desde Gu\xE1piles, para que disfrutes en tus comidas de una calidad inigualable.",
+  description: "Comprometidos con ofrecer las mejores legumbres y verduras, llevamos a\xF1os sirviendo al p\xFAblico con productos frescos y de calidad. Nuestra prioridad es brindar un excelente servicio y garantizar que cada cliente encuentre lo que necesita para su hogar o negocio. \xA1Vis\xEDtanos y descubre la frescura que nos distingue!",
   distrito: "San Pedro",
   email: "",
-  lastUpdate: 1742596967892,
+  lastUpdate: 1742664170022,
   name: "El chamo del encanto Hermanos Solano",
   otherDirections: "Centro de San Jos\xE9",
   profilePhoto: "https://storage.googleapis.com/ride-test-assets/el-roperito.jpg",
   provincia: "San Jos\xE9",
-  tagIds: [Especias, Frutas, Hierbas, Infusiones, Tuberculos, Vegetales, Hongos],
+  tagIds: [Especias, Tuberculos, Vegetales],
   userStatus: "Accepted",
   fcmToken: ""
 };
@@ -26840,16 +26868,16 @@ var TramoNato = {
   firebaseUserId: "Tramo \xD1ato",
   canton: "Montes de Oca",
   cellPhone: "88291771",
-  contacts: [{ "contactType": "Facebook", "contactUrl": "https://www.facebook.com/Soda-La-U-149100517875/" }, { "contactType": "Website", "contactUrl": "https://www.facebook.com/Soda-La-U-149100517875/" }],
-  created: 1742596967892,
+  contacts: [],
+  created: 1742664170022,
   currentLocation: { "latitude": 9.94148, "longitude": -84.049331 },
-  description: "El tramo \xD1ato tiene 45 a\xF1os de proveer a la comunidad con productos de alta calidad. El negocio familiar est\xE1 encabezado por Alfonso Brenes, quien procura servir a sus clientes con las verduras m\xE1s frescas tra\xEDdas desde Cartago.",
+  description: "Con m\xE1s de 40 a\xF1os de experiencia en el mercado, este negocio familiar ha brindado siempre los mejores productos frescos en legumbres, frutas y verduras. Fundado por el padre y continuado con pasi\xF3n, seguimos comprometidos con la calidad y el servicio al cliente.",
   distrito: "San Pedro",
   email: "alfonsobrenes31@gmail.com",
-  lastUpdate: 1742596967892,
+  lastUpdate: 1742664170022,
   name: "Tramo \xD1ato",
   otherDirections: "Centro de San Jos\xE9",
-  profilePhoto: "",
+  profilePhoto: "https://storage.googleapis.com/ride-test-assets/el-roperito.jpg",
   provincia: "San Jos\xE9",
   tagIds: [Especias, Frutas, Hierbas, Infusiones, Tuberculos, Vegetales, Hongos],
   userStatus: "Accepted",
@@ -26859,18 +26887,18 @@ var TramoDelAngel = {
   firebaseUserId: "Tramo del Angel",
   canton: "Montes de Oca",
   cellPhone: "72909295",
-  contacts: [{ "contactType": "Facebook", "contactUrl": "https://www.facebook.com/Soda-La-U-149100517875/" }, { "contactType": "Website", "contactUrl": "https://www.facebook.com/Soda-La-U-149100517875/" }],
-  created: 1742596967892,
+  contacts: [],
+  created: 1742664170022,
   currentLocation: { "latitude": 9.94148, "longitude": -84.049331 },
-  description: "Conocido por sus chiles picantes, el Tramo el \xC1ngel tiene m\xE1s de 20 a\xF1os en el Mercado. Actualmente encabezado por Guillermo Jarqu\xEDn, el negocio familiar suple a sus clientes con toda clase de verduras, tub\xE9rculos y chiles, siempre frescos y de la mejor calidad.",
+  description: "Este negocio familiar lleva dos d\xE9cadas ofreciendo frutas y verduras frescas, seleccionadas con esmero para garantizar el mejor sabor y calidad. Con 20 a\xF1os de experiencia, seguimos comprometidos con la satisfacci\xF3n de nuestros clientes y la frescura de cada producto.",
   distrito: "San Pedro",
   email: "Jarchaguillermo@gmail.com",
-  lastUpdate: 1742596967892,
+  lastUpdate: 1742664170022,
   name: "Tramo del Angel",
   otherDirections: "Centro de San Jos\xE9",
   profilePhoto: "https://storage.googleapis.com/ride-test-assets/el-roperito.jpg",
   provincia: "San Jos\xE9",
-  tagIds: [Especias, Frutas, Hierbas, Infusiones, Tuberculos, Vegetales, Hongos],
+  tagIds: [Especias, Frutas, Hierbas, Infusiones, Tuberculos, Vegetales],
   userStatus: "Accepted",
   fcmToken: ""
 };
@@ -26878,18 +26906,18 @@ var ChamoGuzman = {
   firebaseUserId: "Chamo Guzm\xE1n",
   canton: "Heredia Centro",
   cellPhone: "83244572",
-  contacts: [{ "contactType": "Facebook", "contactUrl": "https://www.facebook.com/Soda-La-U-149100517875/" }, { "contactType": "Website", "contactUrl": "https://www.facebook.com/Soda-La-U-149100517875/" }],
-  created: 1742596967892,
+  contacts: [],
+  created: 1742664170022,
   currentLocation: { "latitude": 9.94148, "longitude": -84.049331 },
-  description: "El Chamo Guzm\xE1n es un negocio familiar y generacional que existe desde el a\xF1o 70, ofreciendo un poquito de todo y siempre con la mejor calidad. Uno de sus productos estrella es la papaya verde, y al igual que sus legumbres, siempre caracterizados por una frescura inigualable.",
+  description: "Fundado hace 47 a\xF1os por un grupo de hermanos, este negocio ha pasado de generaci\xF3n en generaci\xF3n. Hoy, bajo la administraci\xF3n de padre e hijo, seguimos ofreciendo una amplia variedad de frutas y verduras frescas, adem\xE1s de atender cualquier solicitud especial que nuestros clientes necesiten.",
   distrito: "San Pedro",
   email: "",
-  lastUpdate: 1742596967892,
+  lastUpdate: 1742664170022,
   name: "Chamo Guzm\xE1n",
   otherDirections: "Centro de San Jos\xE9",
   profilePhoto: "https://storage.googleapis.com/ride-test-assets/el-roperito.jpg",
   provincia: "San Jos\xE9",
-  tagIds: [Especias, Frutas, Hierbas, Infusiones, Tuberculos, Vegetales, Hongos],
+  tagIds: [Especias, Frutas, Hierbas, Infusiones, Tuberculos, Vegetales],
   userStatus: "Accepted",
   fcmToken: ""
 };
@@ -26897,13 +26925,13 @@ var ElJardinDeHugo = {
   firebaseUserId: "El jard\xEDn de Hugo",
   canton: "Montes de Oca",
   cellPhone: "84830881",
-  contacts: [{ "contactType": "Facebook", "contactUrl": "https://www.facebook.com/Soda-La-U-149100517875/" }, { "contactType": "Website", "contactUrl": "https://www.facebook.com/Soda-La-U-149100517875/" }],
-  created: 1742596967892,
+  contacts: [],
+  created: 1742664170022,
   currentLocation: { "latitude": 9.94148, "longitude": -84.049331 },
-  description: "El reconocido negocio de Don Hugo lleva 50 a\xF1os de funcionar en el mercado, siempre caracterizado por el precio y frescura de sus legumbres. El Jard\xEDn de Hugo le ofrece verduras frescas todos los d\xEDas, con la mejor calidad asegurada.",
+  description: "Este negocio, con m\xE1s de seis d\xE9cadas de trayectoria, ha sido un referente en la venta de legumbres, frutas y verduras frescas. Fundado por Gustavo Villa y ahora manejado por su sobrino, seguimos brindando calidad y confianza a cada cliente.",
   distrito: "San Pedro",
   email: "",
-  lastUpdate: 1742596967892,
+  lastUpdate: 1742664170022,
   name: "El jard\xEDn de Hugo",
   otherDirections: "Centro de San Jos\xE9",
   profilePhoto: "https://storage.googleapis.com/ride-test-assets/el-roperito.jpg",
@@ -26922,8 +26950,8 @@ var ElchamodelencantoHermanosSolanoTomate = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 250,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ElchamodelencantoHermanosSolanoCebollas = {
   businessId: "El chamo del encanto Hermanos Solano",
@@ -26933,8 +26961,8 @@ var ElchamodelencantoHermanosSolanoCebollas = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 100,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ElchamodelencantoHermanosSolanoFresa = {
   businessId: "El chamo del encanto Hermanos Solano",
@@ -26944,8 +26972,8 @@ var ElchamodelencantoHermanosSolanoFresa = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 10,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ElchamodelencantoHermanosSolanoTomateCherry = {
   businessId: "El chamo del encanto Hermanos Solano",
@@ -26955,8 +26983,8 @@ var ElchamodelencantoHermanosSolanoTomateCherry = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 7,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ElchamodelencantoHermanosSolanoPapa = {
   businessId: "El chamo del encanto Hermanos Solano",
@@ -26966,8 +26994,8 @@ var ElchamodelencantoHermanosSolanoPapa = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 20,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ElchamodelencantoHermanosSolanoLimonMesino = {
   businessId: "El chamo del encanto Hermanos Solano",
@@ -26977,8 +27005,8 @@ var ElchamodelencantoHermanosSolanoLimonMesino = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 500,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ElchamodelencantoHermanosSolanoArracacheEnPelota = {
   businessId: "El chamo del encanto Hermanos Solano",
@@ -26988,8 +27016,8 @@ var ElchamodelencantoHermanosSolanoArracacheEnPelota = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 300,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ElchamodelencantoHermanosSolanoArracachePicado = {
   businessId: "El chamo del encanto Hermanos Solano",
@@ -26999,8 +27027,8 @@ var ElchamodelencantoHermanosSolanoArracachePicado = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 10,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ElchamodelencantoHermanosSolanoBrocoli = {
   businessId: "El chamo del encanto Hermanos Solano",
@@ -27010,8 +27038,8 @@ var ElchamodelencantoHermanosSolanoBrocoli = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 20,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ElchamodelencantoHermanosSolanoColiflor = {
   businessId: "El chamo del encanto Hermanos Solano",
@@ -27021,8 +27049,8 @@ var ElchamodelencantoHermanosSolanoColiflor = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 100,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoPapa = {
   businessId: "Tramo \xD1ato",
@@ -27032,8 +27060,8 @@ var TramoNatoPapa = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 60,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoChileDulce = {
   businessId: "Tramo \xD1ato",
@@ -27043,8 +27071,8 @@ var TramoNatoChileDulce = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 50,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoBrocoli = {
   businessId: "Tramo \xD1ato",
@@ -27054,8 +27082,8 @@ var TramoNatoBrocoli = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoColiflor = {
   businessId: "Tramo \xD1ato",
@@ -27065,8 +27093,8 @@ var TramoNatoColiflor = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 10,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoChayote = {
   businessId: "Tramo \xD1ato",
@@ -27076,8 +27104,8 @@ var TramoNatoChayote = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 80,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoTomate = {
   businessId: "Tramo \xD1ato",
@@ -27087,8 +27115,8 @@ var TramoNatoTomate = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 40,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoPepino = {
   businessId: "Tramo \xD1ato",
@@ -27098,8 +27126,8 @@ var TramoNatoPepino = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 15,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoZanahoria = {
   businessId: "Tramo \xD1ato",
@@ -27109,8 +27137,8 @@ var TramoNatoZanahoria = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 50,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoAyoteTierno = {
   businessId: "Tramo \xD1ato",
@@ -27120,8 +27148,8 @@ var TramoNatoAyoteTierno = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 12,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoPina = {
   businessId: "Tramo \xD1ato",
@@ -27131,8 +27159,8 @@ var TramoNatoPina = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 3,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoCebollas = {
   businessId: "Tramo \xD1ato",
@@ -27142,8 +27170,8 @@ var TramoNatoCebollas = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 40,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoYuca = {
   businessId: "Tramo \xD1ato",
@@ -27153,8 +27181,8 @@ var TramoNatoYuca = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 40,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoElote = {
   businessId: "Tramo \xD1ato",
@@ -27164,8 +27192,8 @@ var TramoNatoElote = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 30,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoRepollo = {
   businessId: "Tramo \xD1ato",
@@ -27175,8 +27203,8 @@ var TramoNatoRepollo = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 40,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoAjo = {
   businessId: "Tramo \xD1ato",
@@ -27186,8 +27214,8 @@ var TramoNatoAjo = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 30,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoTamarindo = {
   businessId: "Tramo \xD1ato",
@@ -27197,8 +27225,8 @@ var TramoNatoTamarindo = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 25,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoCamote = {
   businessId: "Tramo \xD1ato",
@@ -27208,8 +27236,8 @@ var TramoNatoCamote = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 25,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoTiquisque = {
   businessId: "Tramo \xD1ato",
@@ -27219,8 +27247,8 @@ var TramoNatoTiquisque = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 30,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramoNatoAyote = {
   businessId: "Tramo \xD1ato",
@@ -27230,8 +27258,8 @@ var TramoNatoAyote = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 30,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelTomate = {
   businessId: "Tramo del Angel",
@@ -27241,8 +27269,8 @@ var TramodelAngelTomate = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 50,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelCas = {
   businessId: "Tramo del Angel",
@@ -27252,8 +27280,8 @@ var TramodelAngelCas = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 10,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelMora = {
   businessId: "Tramo del Angel",
@@ -27263,8 +27291,8 @@ var TramodelAngelMora = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelHongoBlanco = {
   businessId: "Tramo del Angel",
@@ -27274,8 +27302,8 @@ var TramodelAngelHongoBlanco = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelAguacate = {
   businessId: "Tramo del Angel",
@@ -27285,8 +27313,8 @@ var TramodelAngelAguacate = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 50,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelPapa = {
   businessId: "Tramo del Angel",
@@ -27296,8 +27324,8 @@ var TramodelAngelPapa = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelTomateDeArbol = {
   businessId: "Tramo del Angel",
@@ -27307,8 +27335,8 @@ var TramodelAngelTomateDeArbol = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelCarambola = {
   businessId: "Tramo del Angel",
@@ -27318,8 +27346,8 @@ var TramodelAngelCarambola = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 10,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelNaranjilla = {
   businessId: "Tramo del Angel",
@@ -27329,8 +27357,8 @@ var TramodelAngelNaranjilla = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelTomateCherry = {
   businessId: "Tramo del Angel",
@@ -27340,8 +27368,8 @@ var TramodelAngelTomateCherry = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelChileDulce = {
   businessId: "Tramo del Angel",
@@ -27351,8 +27379,8 @@ var TramodelAngelChileDulce = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 50,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelChilePicante = {
   businessId: "Tramo del Angel",
@@ -27362,8 +27390,8 @@ var TramodelAngelChilePicante = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelChilePanameno = {
   businessId: "Tramo del Angel",
@@ -27373,8 +27401,8 @@ var TramodelAngelChilePanameno = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelHabanoChocolate = {
   businessId: "Tramo del Angel",
@@ -27384,8 +27412,8 @@ var TramodelAngelHabanoChocolate = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 1,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelCebolla = {
   businessId: "Tramo del Angel",
@@ -27395,8 +27423,8 @@ var TramodelAngelCebolla = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 50,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelAjoPelado = {
   businessId: "Tramo del Angel",
@@ -27406,8 +27434,8 @@ var TramodelAngelAjoPelado = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 10,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var TramodelAngelVainica = {
   businessId: "Tramo del Angel",
@@ -27417,8 +27445,8 @@ var TramodelAngelVainica = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 10,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanRemolacha = {
   businessId: "Chamo Guzm\xE1n",
@@ -27428,8 +27456,8 @@ var ChamoGuzmanRemolacha = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 100,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanTomate = {
   businessId: "Chamo Guzm\xE1n",
@@ -27439,8 +27467,8 @@ var ChamoGuzmanTomate = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 100,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanRepolloMorado = {
   businessId: "Chamo Guzm\xE1n",
@@ -27450,8 +27478,8 @@ var ChamoGuzmanRepolloMorado = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 20,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanChileDulce = {
   businessId: "Chamo Guzm\xE1n",
@@ -27461,8 +27489,8 @@ var ChamoGuzmanChileDulce = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 200,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanZuquini = {
   businessId: "Chamo Guzm\xE1n",
@@ -27472,8 +27500,8 @@ var ChamoGuzmanZuquini = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 50,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanChayoteNegro = {
   businessId: "Chamo Guzm\xE1n",
@@ -27483,8 +27511,8 @@ var ChamoGuzmanChayoteNegro = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 60,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanPipas = {
   businessId: "Chamo Guzm\xE1n",
@@ -27494,8 +27522,8 @@ var ChamoGuzmanPipas = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 200,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanPlatanoVerde = {
   businessId: "Chamo Guzm\xE1n",
@@ -27505,8 +27533,8 @@ var ChamoGuzmanPlatanoVerde = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 60,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanPlatanoMaduro = {
   businessId: "Chamo Guzm\xE1n",
@@ -27516,8 +27544,8 @@ var ChamoGuzmanPlatanoMaduro = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 60,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanLechuga = {
   businessId: "Chamo Guzm\xE1n",
@@ -27527,8 +27555,8 @@ var ChamoGuzmanLechuga = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 60,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanMaracuya = {
   businessId: "Chamo Guzm\xE1n",
@@ -27538,8 +27566,8 @@ var ChamoGuzmanMaracuya = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 20,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanAyoteSazon = {
   businessId: "Chamo Guzm\xE1n",
@@ -27549,8 +27577,8 @@ var ChamoGuzmanAyoteSazon = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 20,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanCamote = {
   businessId: "Chamo Guzm\xE1n",
@@ -27560,8 +27588,8 @@ var ChamoGuzmanCamote = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 100,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanMalanga = {
   businessId: "Chamo Guzm\xE1n",
@@ -27571,8 +27599,8 @@ var ChamoGuzmanMalanga = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 20,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanPapaya = {
   businessId: "Chamo Guzm\xE1n",
@@ -27582,8 +27610,8 @@ var ChamoGuzmanPapaya = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 40,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanLimonMandarina = {
   businessId: "Chamo Guzm\xE1n",
@@ -27593,8 +27621,8 @@ var ChamoGuzmanLimonMandarina = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 600,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanPina = {
   businessId: "Chamo Guzm\xE1n",
@@ -27604,8 +27632,8 @@ var ChamoGuzmanPina = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 60,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanElote = {
   businessId: "Chamo Guzm\xE1n",
@@ -27615,8 +27643,8 @@ var ChamoGuzmanElote = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 30,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanColiflor = {
   businessId: "Chamo Guzm\xE1n",
@@ -27626,8 +27654,8 @@ var ChamoGuzmanColiflor = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 20,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanCoco = {
   businessId: "Chamo Guzm\xE1n",
@@ -27637,8 +27665,8 @@ var ChamoGuzmanCoco = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 400,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanZanahoria = {
   businessId: "Chamo Guzm\xE1n",
@@ -27648,8 +27676,8 @@ var ChamoGuzmanZanahoria = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 50,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanAyoteTierno = {
   businessId: "Chamo Guzm\xE1n",
@@ -27659,8 +27687,8 @@ var ChamoGuzmanAyoteTierno = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 20,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanChayoteCocoro = {
   businessId: "Chamo Guzm\xE1n",
@@ -27670,8 +27698,8 @@ var ChamoGuzmanChayoteCocoro = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 10,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanCebolla = {
   businessId: "Chamo Guzm\xE1n",
@@ -27681,8 +27709,8 @@ var ChamoGuzmanCebolla = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 100,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var ChamoGuzmanRepollo = {
   businessId: "Chamo Guzm\xE1n",
@@ -27692,8 +27720,8 @@ var ChamoGuzmanRepollo = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 50,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoCebollin = {
   businessId: "El jard\xEDn de Hugo",
@@ -27703,8 +27731,8 @@ var EljardindeHugoCebollin = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 80,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoHierbabuena = {
   businessId: "El jard\xEDn de Hugo",
@@ -27714,8 +27742,8 @@ var EljardindeHugoHierbabuena = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 80,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoRabano = {
   businessId: "El jard\xEDn de Hugo",
@@ -27725,8 +27753,8 @@ var EljardindeHugoRabano = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 40,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoKelite = {
   businessId: "El jard\xEDn de Hugo",
@@ -27736,8 +27764,8 @@ var EljardindeHugoKelite = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 20,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoEspinaca = {
   businessId: "El jard\xEDn de Hugo",
@@ -27747,8 +27775,8 @@ var EljardindeHugoEspinaca = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 30,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoTamarindo = {
   businessId: "El jard\xEDn de Hugo",
@@ -27758,8 +27786,8 @@ var EljardindeHugoTamarindo = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 30,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoSabila = {
   businessId: "El jard\xEDn de Hugo",
@@ -27769,8 +27797,8 @@ var EljardindeHugoSabila = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 600,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoZanahoria = {
   businessId: "El jard\xEDn de Hugo",
@@ -27780,8 +27808,8 @@ var EljardindeHugoZanahoria = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 15,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoCebolla = {
   businessId: "El jard\xEDn de Hugo",
@@ -27791,8 +27819,8 @@ var EljardindeHugoCebolla = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 25,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoVinagreGuineo = {
   businessId: "El jard\xEDn de Hugo",
@@ -27802,8 +27830,8 @@ var EljardindeHugoVinagreGuineo = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "kilo",
   amountAvailable: 4,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoJamaica = {
   businessId: "El jard\xEDn de Hugo",
@@ -27813,8 +27841,8 @@ var EljardindeHugoJamaica = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 20,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoHojasDeLaurel = {
   businessId: "El jard\xEDn de Hugo",
@@ -27824,8 +27852,8 @@ var EljardindeHugoHojasDeLaurel = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoCanela = {
   businessId: "El jard\xEDn de Hugo",
@@ -27835,8 +27863,8 @@ var EljardindeHugoCanela = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoPaprika = {
   businessId: "El jard\xEDn de Hugo",
@@ -27846,8 +27874,8 @@ var EljardindeHugoPaprika = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoAjoEnPolvo = {
   businessId: "El jard\xEDn de Hugo",
@@ -27857,8 +27885,8 @@ var EljardindeHugoAjoEnPolvo = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoPimientaNegra = {
   businessId: "El jard\xEDn de Hugo",
@@ -27868,8 +27896,8 @@ var EljardindeHugoPimientaNegra = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoBomba = {
   businessId: "El jard\xEDn de Hugo",
@@ -27879,8 +27907,8 @@ var EljardindeHugoBomba = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoAginomoto = {
   businessId: "El jard\xEDn de Hugo",
@@ -27890,8 +27918,8 @@ var EljardindeHugoAginomoto = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoCurcuma = {
   businessId: "El jard\xEDn de Hugo",
@@ -27901,8 +27929,8 @@ var EljardindeHugoCurcuma = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoJengibreEnPolvo = {
   businessId: "El jard\xEDn de Hugo",
@@ -27912,8 +27940,8 @@ var EljardindeHugoJengibreEnPolvo = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoOreganoSeco = {
   businessId: "El jard\xEDn de Hugo",
@@ -27923,8 +27951,8 @@ var EljardindeHugoOreganoSeco = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoAchoteEnPasta = {
   businessId: "El jard\xEDn de Hugo",
@@ -27934,8 +27962,8 @@ var EljardindeHugoAchoteEnPasta = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 5,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoLechuga = {
   businessId: "El jard\xEDn de Hugo",
@@ -27945,8 +27973,8 @@ var EljardindeHugoLechuga = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "paquete",
   amountAvailable: 50,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoCoyote = {
   businessId: "El jard\xEDn de Hugo",
@@ -27956,8 +27984,8 @@ var EljardindeHugoCoyote = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 40,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 var EljardindeHugoRepollo = {
   businessId: "El jard\xEDn de Hugo",
@@ -27967,21 +27995,29 @@ var EljardindeHugoRepollo = {
   productPhoto: "https://storage.googleapis.com/ride-test-assets/hamburguesa.jpg",
   description: "unidad",
   amountAvailable: 75,
-  created: 1742596967893,
-  lastUpdate: 1742596967893
+  created: 1742664170023,
+  lastUpdate: 1742664170023
 };
 
 // output/index.ts
+var Normalize = (input) => {
+  let normalized = input.normalize("NFD").replace(/[̀-ͯ]/g, "");
+  normalized = normalized.replace(/[àáâãäå]/g, "a").replace(/[èéêë]/g, "e").replace(/[ìíîï]/g, "i").replace(/[òóôõö]/g, "o").replace(/[ùúûü]/g, "u").replace(/ñ/g, "n").replace(/ç/g, "c");
+  normalized = normalized.replace(/ /g, "");
+  return normalized;
+};
 var storeBusiness = async (db, auth, biz) => {
   const newBusiness = biz;
   const businessCollection = collection(db, "businesses");
-  await setDoc(doc(businessCollection, newBusiness.firebaseUserId), newBusiness);
+  console.log(`before ${newBusiness.firebaseUserId}`);
+  console.log(`after ${Normalize(newBusiness.firebaseUserId)}`);
+  await setDoc(doc(businessCollection, Normalize(newBusiness.firebaseUserId)), newBusiness);
   return newBusiness;
 };
 var storeProducts = async (db, products, business) => {
   for (let i = 0; i < products.length; i++) {
     const currentProd = products[i];
-    await addDoc(collection(db, "products"), currentProd);
+    await setDoc(doc(db, "products", Normalize(currentProd.businessId + "." + currentProd.name)), currentProd);
   }
 };
 async function run() {
@@ -27989,13 +28025,13 @@ async function run() {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
-  await addDoc(collection(db, "tag"), Especias);
-  await addDoc(collection(db, "tag"), Frutas);
-  await addDoc(collection(db, "tag"), Hierbas);
-  await addDoc(collection(db, "tag"), Infusiones);
-  await addDoc(collection(db, "tag"), Tuberculos);
-  await addDoc(collection(db, "tag"), Vegetales);
-  await addDoc(collection(db, "tag"), Hongos);
+  await setDoc(doc(db, "tag", Normalize("Especias")), Especias);
+  await setDoc(doc(db, "tag", Normalize("Frutas")), Frutas);
+  await setDoc(doc(db, "tag", Normalize("Hierbas")), Hierbas);
+  await setDoc(doc(db, "tag", Normalize("Infusiones")), Infusiones);
+  await setDoc(doc(db, "tag", Normalize("Tuberculos")), Tuberculos);
+  await setDoc(doc(db, "tag", Normalize("Vegetales")), Vegetales);
+  await setDoc(doc(db, "tag", Normalize("Hongos")), Hongos);
   const FB0 = await storeBusiness(db, auth, ElChamoDelEncantoHermanosSolano);
   const FB1 = await storeBusiness(db, auth, TramoNato);
   const FB2 = await storeBusiness(db, auth, TramoDelAngel);
@@ -28704,6 +28740,24 @@ firebase/app/dist/index.mjs:
    *)
   (**
    * @license
+   * Copyright 2023 Google LLC
+   *
+   * Licensed under the Apache License, Version 2.0 (the "License");
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *   http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an "AS IS" BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   *)
+
+@firebase/firestore/dist/index.node.mjs:
+  (**
+   * @license
    * Copyright 2017 Google LLC
    *
    * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29116,24 +29170,6 @@ firebase/app/dist/index.mjs:
    * See the License for the specific language governing permissions and
    * limitations under the License.
    *)
-  (**
-   * @license
-   * Copyright 2023 Google LLC
-   *
-   * Licensed under the Apache License, Version 2.0 (the "License");
-   * you may not use this file except in compliance with the License.
-   * You may obtain a copy of the License at
-   *
-   *   http://www.apache.org/licenses/LICENSE-2.0
-   *
-   * Unless required by applicable law or agreed to in writing, software
-   * distributed under the License is distributed on an "AS IS" BASIS,
-   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   * See the License for the specific language governing permissions and
-   * limitations under the License.
-   *)
-
-@firebase/firestore/dist/index.node.mjs:
   (**
    * @license
    * Copyright 2023 Google LLC

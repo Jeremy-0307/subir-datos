@@ -10,10 +10,26 @@ import { Especias, Frutas, Hierbas, Infusiones, Tuberculos, Vegetales, Hongos } 
 import { ElChamoDelEncantoHermanosSolano, TramoNato, TramoDelAngel, ChamoGuzman, ElJardinDeHugo } from './business';
 import { ElchamodelencantoHermanosSolanoTomate, ElchamodelencantoHermanosSolanoCebollas, ElchamodelencantoHermanosSolanoFresa, ElchamodelencantoHermanosSolanoTomateCherry, ElchamodelencantoHermanosSolanoPapa, ElchamodelencantoHermanosSolanoLimonMesino, ElchamodelencantoHermanosSolanoArracacheEnPelota, ElchamodelencantoHermanosSolanoArracachePicado, ElchamodelencantoHermanosSolanoBrocoli, ElchamodelencantoHermanosSolanoColiflor, TramoNatoPapa, TramoNatoChileDulce, TramoNatoBrocoli, TramoNatoColiflor, TramoNatoChayote, TramoNatoTomate, TramoNatoPepino, TramoNatoZanahoria, TramoNatoAyoteTierno, TramoNatoPina, TramoNatoCebollas, TramoNatoYuca, TramoNatoElote, TramoNatoRepollo, TramoNatoAjo, TramoNatoTamarindo, TramoNatoCamote, TramoNatoTiquisque, TramoNatoAyote, TramodelAngelTomate, TramodelAngelCas, TramodelAngelMora, TramodelAngelHongoBlanco, TramodelAngelAguacate, TramodelAngelPapa, TramodelAngelTomateDeArbol, TramodelAngelCarambola, TramodelAngelNaranjilla, TramodelAngelTomateCherry, TramodelAngelChileDulce, TramodelAngelChilePicante, TramodelAngelChilePanameno, TramodelAngelHabanoChocolate, TramodelAngelCebolla, TramodelAngelAjoPelado, TramodelAngelVainica, ChamoGuzmanRemolacha, ChamoGuzmanTomate, ChamoGuzmanRepolloMorado, ChamoGuzmanChileDulce, ChamoGuzmanZuquini, ChamoGuzmanChayoteNegro, ChamoGuzmanPipas, ChamoGuzmanPlatanoVerde, ChamoGuzmanPlatanoMaduro, ChamoGuzmanLechuga, ChamoGuzmanMaracuya, ChamoGuzmanAyoteSazon, ChamoGuzmanCamote, ChamoGuzmanMalanga, ChamoGuzmanPapaya, ChamoGuzmanLimonMandarina, ChamoGuzmanPina, ChamoGuzmanElote, ChamoGuzmanColiflor, ChamoGuzmanCoco, ChamoGuzmanZanahoria, ChamoGuzmanAyoteTierno, ChamoGuzmanChayoteCocoro, ChamoGuzmanCebolla, ChamoGuzmanRepollo, EljardindeHugoCebollin, EljardindeHugoHierbabuena, EljardindeHugoRabano, EljardindeHugoKelite, EljardindeHugoEspinaca, EljardindeHugoTamarindo, EljardindeHugoSabila, EljardindeHugoZanahoria, EljardindeHugoCebolla, EljardindeHugoVinagreGuineo, EljardindeHugoJamaica, EljardindeHugoHojasDeLaurel, EljardindeHugoCanela, EljardindeHugoPaprika, EljardindeHugoAjoEnPolvo, EljardindeHugoPimientaNegra, EljardindeHugoBomba, EljardindeHugoAginomoto, EljardindeHugoCurcuma, EljardindeHugoJengibreEnPolvo, EljardindeHugoOreganoSeco, EljardindeHugoAchoteEnPasta, EljardindeHugoLechuga, EljardindeHugoCoyote, EljardindeHugoRepollo } from './product';
 
+const Normalize = (input: string): string => {
+  let normalized = input.normalize('NFD').replace(/[̀-ͯ]/g, "");
+  normalized = normalized.replace(/[àáâãäå]/g, 'a')
+                         .replace(/[èéêë]/g, 'e')
+                         .replace(/[ìíîï]/g, 'i')
+                         .replace(/[òóôõö]/g, 'o')
+                         .replace(/[ùúûü]/g, 'u')
+                         .replace(/ñ/g, 'n')
+                         .replace(/ç/g, 'c');
+  normalized = normalized.replace(/ /g, "");
+  return normalized;
+};
+
+
 const storeBusiness = async (db: Firestore, auth: Auth, biz: Business): Promise<Business> => {
   const newBusiness = biz;
   const businessCollection = collection(db, "businesses");
-  await setDoc(doc(businessCollection, newBusiness.firebaseUserId), newBusiness);
+  console.log(`before ${newBusiness.firebaseUserId}`)
+  console.log(`after ${Normalize(newBusiness.firebaseUserId)}`)
+  await setDoc(doc(businessCollection, Normalize(newBusiness.firebaseUserId)), newBusiness);
   return newBusiness;
 };
 
@@ -21,7 +37,7 @@ const storeBusiness = async (db: Firestore, auth: Auth, biz: Business): Promise<
 const storeProducts = async (db: Firestore, products: Product[], business: Business): Promise<void> => {
   for (let i = 0; i < products.length; i++) {
     const currentProd = products[i];
-    await addDoc(collection(db, "products"), currentProd);
+    await setDoc(doc(db, "products", Normalize(currentProd.businessId+"."+currentProd.name)), currentProd);
   }
 };
 
@@ -32,13 +48,13 @@ export default async function run() {
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  await addDoc(collection(db, "tag"), Especias);
-  await addDoc(collection(db, "tag"), Frutas);
-  await addDoc(collection(db, "tag"), Hierbas);
-  await addDoc(collection(db, "tag"), Infusiones);
-  await addDoc(collection(db, "tag"), Tuberculos);
-  await addDoc(collection(db, "tag"), Vegetales);
-  await addDoc(collection(db, "tag"), Hongos);
+  await setDoc(doc(db, "tag", Normalize('Especias')), Especias);
+  await setDoc(doc(db, "tag", Normalize('Frutas')), Frutas);
+  await setDoc(doc(db, "tag", Normalize('Hierbas')), Hierbas);
+  await setDoc(doc(db, "tag", Normalize('Infusiones')), Infusiones);
+  await setDoc(doc(db, "tag", Normalize('Tuberculos')), Tuberculos);
+  await setDoc(doc(db, "tag", Normalize('Vegetales')), Vegetales);
+  await setDoc(doc(db, "tag", Normalize('Hongos')), Hongos);
   const FB0 = await storeBusiness(db, auth, ElChamoDelEncantoHermanosSolano);
   const FB1 = await storeBusiness(db, auth, TramoNato);
   const FB2 = await storeBusiness(db, auth, TramoDelAngel);
