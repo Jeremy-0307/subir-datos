@@ -27,7 +27,11 @@ Esta aplicacion cumple con la fución de agregar negocios,tags y productos a una
   ```powershell
   npm install
   ```
-
+### Configurar base de datos
+Para configurar que los cambios se vean reflejados en su base de datos; en Firebase,
+<br> vaya a la seccion de `descripcion general` y seleccione las configurarciones para ir a `configuracion del proyecto`<br>
+Ahi, dirijase abajo y seleccione todo lo que venga ADENTRO de const `firebaseConfig = { ... }`, copielo y peguelo en el archivo del proyecto llamado `firebaseConfig.json`<br>
+Dentro de ese archivo ya se encuentra una configuracion base, debe de reemplazarla con sus datos de modo que quede con la misma estructura, solo los datos deberian cambiar ya que son las credenciales de su base de datos, por seguridad, no comparta este archivo con nadie.
 ### 5. Ejecutar la aplicación
 
 - Desde la misma ventana de **PowerShell**, inicia la aplicación en modo desarrollo con el comando:
