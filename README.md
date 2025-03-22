@@ -71,11 +71,11 @@ Formato:
 {contactType: <tipo de contacto>, contactUrl: <link>}
 ```
 \<tipo de contacto\> solo puede tener uno de los siguientes valores (incluyendo '')<br>
-	- 'Facebook'
-	- 'Instagram'
-	- 'Website'
-	- 'Other Phone'
-	- 'Fax'
+1. 'Facebook'
+2. 'Instagram'
+3. 'Website'
+4. 'Other Phone'
+5. 'Fax'
 
 - profilePhoto: no poner nada (por el momento)
 - lastUpdate: no poner nada
