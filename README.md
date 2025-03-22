@@ -70,7 +70,7 @@ Formato:
 ```
 {contactType: <tipo de contacto>, contactUrl: <link>}
 ```
-\<tipo de contacto\> solo puede tener uno de los siguientes valores (incluyendo '')
+\<tipo de contacto\> solo puede tener uno de los siguientes valores (incluyendo '')<br>
 	- 'Facebook'
 	- 'Instagram'
 	- 'Website'
