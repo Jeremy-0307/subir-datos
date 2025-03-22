@@ -168,6 +168,7 @@ export function excelToTS(filePath) {
         let processedRows = [];
         let fila = 0;
         let rowData = {};
+        // @ts-ignore
         const firstRowRange = XLSX.utils.decode_range(sheet['!ref']);
         const allColumns = [];
         for (let col = firstRowRange.s.c; col <= firstRowRange.e.c; col++) {
