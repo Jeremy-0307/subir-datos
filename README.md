@@ -39,8 +39,7 @@ Esta aplicacion cumple con la fución de agregar negocios,tags y productos a una
 # Manual de uso
 1. Cuando presione seleccionar archivo, seleccione el archivo `.xlsx` con el sus negocios/productos/tags<br><br>
 Cabe a destacar que para hacer esto, el archivo debe tener un formato especifico, hay un archivo de ejemplo en la carpeta de `subir-datos` <br>
-A continuacion al explicacion de cada columna
-- 
+A continuacion al explicacion de cada columna:
 ## business
 Aqui iran sus negocios
 - firebaseUserId: este va ser igual al nombre del negocio
