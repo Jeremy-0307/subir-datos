@@ -298,7 +298,7 @@ function Normalize(input: string): string {
 }
 
 function loadRules(): Map<string, string> {
-  const rulesPath = path.join(os.homedir(), 'Downloads', 'funciones.xlsx');
+  const rulesPath = path.join(__dirname, 'funciones.xlsx');
   const workbook = XLSX.readFile(rulesPath);
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rules = XLSX.utils.sheet_to_json(sheet);
